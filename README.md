@@ -52,23 +52,23 @@ This repository contains a Stress Management Chatbot application designed to pro
 
 - Install required Python packages:
   
-  ```python 
-  pip install -r requirements.txt
-  ```
+    ```python 
+    pip install -r requirements.txt
+    ```
 
 
 ## Clone the Repository
 
-```python
-git clone https://github.com/yourusername/stress-management-chatbot.git
-cd stress-management-chatbot
-```
+    ```python
+    git clone https://github.com/yourusername/stress-management-chatbot.git
+    cd stress-management-chatbot
+    ```
 
 ## Run the Application
 - 1. Start the backend chatbot service:
-     ```python
-     python main.py
-     ```
+   ```python
+   python main.py
+   ```
 - 2. Launch the Streamlit app:
   ```python
   streamlit run streamlit.py
