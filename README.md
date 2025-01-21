@@ -59,10 +59,10 @@ This repository contains a Stress Management Chatbot application designed to pro
 
 ## Clone the Repository
 
-    ```python
-    git clone https://github.com/yourusername/stress-management-chatbot.git
-    cd stress-management-chatbot
-    ```
+  ```python
+  git clone https://github.com/yourusername/stress-management-chatbot.git
+  cd stress-management-chatbot
+  ```
 
 ## Run the Application
 - 1. Start the backend chatbot service:
