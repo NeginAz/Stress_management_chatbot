@@ -63,14 +63,14 @@ This repository contains a Stress Management Chatbot application designed to pro
     ```
 
 
-## Clone the Repository
+#### Clone the Repository
 
   ```python
   git clone https://github.com/yourusername/stress-management-chatbot.git
   cd stress-management-chatbot
   ```
 
-## Run the Application
+#### Run the Application
 - 1. Start the backend chatbot service:
    ```python
    python main.py
@@ -80,7 +80,7 @@ This repository contains a Stress Management Chatbot application designed to pro
   streamlit run streamlit.py
   ```
 
-### 7. ## Data Source
+### 7. Data Source
 
 The chatbot's responses are enhanced using a Retrieval-Augmented Generation (RAG) pipeline, which focuses on information from a custom `stress.txt` file. This file contains carefully curated content from the following sources:
 
