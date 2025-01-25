@@ -9,7 +9,8 @@ This repository contains a Stress Management Chatbot application designed to pro
 - Maintains context across multiple user queries.
 
 - Provides concise and empathetic advice for stress-related queries.
-<img width="1600" alt="Conversation" src="https://github.com/user-attachments/assets/3361ad15-98f5-41b5-b97e-aa5ef2669ce8" />
+
+![chat](https://github.com/user-attachments/assets/8eeca824-cd35-4207-aac2-31eca3e1ce4f)
 
 
 ### 2. Mood Logging
@@ -17,7 +18,9 @@ This repository contains a Stress Management Chatbot application designed to pro
 - Allows users to log their mood (e.g., Happy, Neutral, Stressed).
 
 - Tracks causes of stress for better self-awareness.
-<img width="1512" alt="Log_mood" src="https://github.com/user-attachments/assets/01331c9e-7df8-485f-a58e-192bb1482482" />
+
+![log_moods](https://github.com/user-attachments/assets/a7071e92-e21e-4c7a-a509-316da04edbed)
+
 
 ### 3. Personalized Stress Reports
 
@@ -29,7 +32,9 @@ This repository contains a Stress Management Chatbot application designed to pro
 - Users can provide thumbs-up or thumbs-down feedback for chatbot responses.
 
 - Feedback data is used to analyze and improve the chatbot's responses.
-<img width="1512" alt="figure" src="https://github.com/user-attachments/assets/bc5e298d-0874-47f9-863a-e8e6d4a93779" />
+![figure](https://github.com/user-attachments/assets/be74237c-26bb-434a-956a-82f130a6a7c8)
+
+
 
 ### 5. Visualization
 
