@@ -30,6 +30,7 @@ This repository contains a Stress Management Chatbot application designed to pro
 
 - Feedback data is used to analyze and improve the chatbot's responses.
 <img width="1512" alt="figure" src="https://github.com/user-attachments/assets/bc5e298d-0874-47f9-863a-e8e6d4a93779" />
+
 ### 5. Visualization
 
 - Visualizes mood trends over time using interactive and static charts.
