@@ -10,6 +10,8 @@ This repository contains a Stress Management Chatbot application designed to pro
 
 - Provides concise and empathetic advice for stress-related queries.
 <img width="1600" alt="Conversation" src="https://github.com/user-attachments/assets/3361ad15-98f5-41b5-b97e-aa5ef2669ce8" />
+
+
 ### 2. Mood Logging
 
 - Allows users to log their mood (e.g., Happy, Neutral, Stressed).
