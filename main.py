@@ -304,10 +304,3 @@ class Chatbot:
         except Exception as e:
             print(f"Error analyzing feedback-emotion correlation: {e}")
             return None
-
-#Instantiate and run the chatbot
-# if __name__ == "__main__":
-#     bot = Chatbot()
-#     user_input = input("Ask me anything about stress: ")
-#     response = bot.ask(user_input)
-#     print(response)
