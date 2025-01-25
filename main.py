@@ -8,21 +8,25 @@ from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 from textblob import TextBlob
 from datetime import datetime
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
 import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
 import csv
 import os
 
+EMOTIONS = [
+    "Sad, Depressed", "Guilty, Ashamed", "Angry, Irritated, Annoyed, Resentful",
+    "Frustrated", "Anxious, Worried, Terrified, Nervous, Panicked",
+    "Inferior, Inadequate", "Lonely", "Hopeless, Discouraged", "Happy", "Neutral"
+]
 
-os.environ["PINECONE_API_KEY"] = "pcsk_77UPqf_PjNe9R441XdWKwahkgcxvA9iXN4cvjX1sjM4EytUQqyVJgYEqa2GqNsZttH8qMM"
+load_dotenv()
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 
-# Pinecone API key and environment
-PINECONE_API_KEY = "pcsk_77UPqf_PjNe9R441XdWKwahkgcxvA9iXN4cvjX1sjM4EytUQqyVJgYEqa2GqNsZttH8qMM"
-PINECONE_ENV = "us-east-1"  # Replace with your environment
-
-# HuggingFace API key
-HUGGINGFACE_API_KEY = "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"
 
 class Chatbot:
     def __init__(self):
@@ -30,12 +34,8 @@ class Chatbot:
         loader = TextLoader('stress.txt')
         documents = loader.load()
 
-        #print(f"Loaded Documents:\n{documents}\n")
-
         text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=4)
         self.docs = text_splitter.split_documents(documents)
-
-        #print(f"Split Documents:\n{self.docs}\n")
 
         # Initialize embeddings with explicit model
         self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -45,14 +45,14 @@ class Chatbot:
 
         # Define index name
         self.index_name = "langchain-demo"
-
+        self.PINECONE_ENV = "us-east-1" 
         # Check if the index exists, create if it doesn't
         if self.index_name not in self.pc.list_indexes().names():
             self.pc.create_index(
                 name=self.index_name,
                 dimension=384,  # Dimension for the MiniLM model
                 metric="cosine",
-                spec=ServerlessSpec(cloud="aws", region=PINECONE_ENV)
+                spec=ServerlessSpec(cloud="aws", region=self.PINECONE_ENV)
             )
             # Populate the index with documents
             self.docsearch = LangChainPinecone.from_documents(
@@ -64,79 +64,35 @@ class Chatbot:
                 self.index_name, self.embeddings
             )
 
-        # Initialize HuggingFace LLM
-        repo_id = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-        #repo_id=endpoint_url="https://api-inference.huggingface.co/models/facebook/opt-125m"
-        # self.llm = HuggingFaceHub(
-        #     repo_id=repo_id,
-        #     model_kwargs={"temperature": 0.8, "top_k": 50},
-        #     huggingfacehub_api_token=HUGGINGFACE_API_KEY
-        # )
-        # self.llm = HuggingFaceEndpoint(
-        #     endpoint_url=repo_id, 
-        #     huggingfacehub_api_token=HUGGINGFACE_API_KEY,
-        #     timeout=300,
-        #     temperature=0.8,
-        #     top_k=50, 
-        #     max_new_tokens=150, 
-        #       # Ensure this is <= 250
-        # )
-       
         # Initialize HuggingFace InferenceClient
         self.client = InferenceClient(
-            #model="facebook/opt-350m",  # Use your chosen model
             model="mistralai/Mixtral-8x7B-Instruct-v0.1", 
             token=HUGGINGFACE_API_KEY
         )
-        # Define prompt template
-        template="""
-            You are a professional counselor who provides actionable and empathetic advice to people feeling stressed.
-            Below is some context about their situation, followed by their specific question.
 
-            Context:
-            {context}
-
-            Question:
-            {question}
-
-            Please provide a concise answer:
-        """
-
-        self.prompt = PromptTemplate(
-            template=template, 
-            input_variables=["context", "question"]
-        )
-
-    #     #Set up RAG pipeline
-    #     self.rag_chain = (
-    #         {"context": self.docsearch.as_retriever(), "question": RunnablePassthrough()}
-    #         | self.prompt
-    #         | self.llm
-    #         | StrOutputParser()
-    #     )
-
-    # def ask(self, question):
-    #     response = self.rag_chain.invoke(question)
-    #     return response.strip()
     def ask_with_history(self, question, history):
         """Generate a response while considering the conversation history."""
-        # Format the history into the prompt
-        history_text = "\n".join(
-            [f"User: {turn['user']}\nBot: {turn['bot']}" for turn in history]
-        )
+        # Build the conversation history for the prompt
+        if history:
+            history_text = "\n".join(
+                [f"User: {turn['user']}\nBot: {turn['bot']}" for turn in history]
+            )
+        else:
+            history_text = ""
+
+        # Define the complete prompt with optimized instructions
         prompt = f"""
-        You are a helpful counselor specializing in stress management.
-        Below is the conversation history, followed by the user's new question.
+        You are a professional counselor specializing in stress management.
+        Respond empathetically to user concerns and provide actionable advice.
 
-        Conversation History:
-        {history_text}
-
+        {f"Conversation History:\n{history_text}" if history_text else ""}
         User: {question}
         Bot:
         """
-        # Generate response using InferenceClient or your model
+
+        # Generate response using the InferenceClient
         response = self.client.text_generation(
-            prompt,
+            prompt.strip(),
             max_new_tokens=150,
             temperature=0.5,
             top_k=20
@@ -144,57 +100,44 @@ class Chatbot:
         return response.strip()
 
 
-    # def ask(self, question):
-    #     try:
-    #         # Retrieve relevant documents
-    #         retriever = self.docsearch.as_retriever()
-    #         #context_docs = retriever.get_relevant_documents(question)
-    #         context_docs = retriever.invoke(question)
-
-    #         # Combine contexts into a single string
-    #         context = "\n".join([doc.page_content for doc in context_docs])
-            
-    #         if not context.strip():
-    #             context = "No specific context is available for this question."
-
-    #         # Format the prompt
-    #         prompt = self.prompt.format(context=context, question=question)
-    #         #print(f"Prompt Sent to Model:\n{prompt}\n")
-
-    #         # Generate response using InferenceClient
-    #         response = self.client.text_generation(
-    #             prompt,
-    #             max_new_tokens=150,
-    #             temperature=0.5, #less randomness
-    #             top_k=20, #more focused completions
-    #             #stop=["--- Question ---", "--- Answer ---"]
-    #         )
-
-    #         answer = response.strip().split("Please provide a concise answer:")[-1].strip()
-    #         return answer
-    #     except Exception as e:
-    #         return f"Error: {str(e)}"
-
-
-
 
     def detect_emotion(self, text):
-        """Detect emotion based on sentiment analysis."""
-        analysis = TextBlob(text)
-        polarity = analysis.sentiment.polarity  # Polarity ranges from -1 to 1
-        if polarity > 0:
-            return "positive"
-        elif polarity < 0:
-            return "negative"
-        else:
-            return "neutral"
+        """Detect emotion based on predefined keywords."""
+        emotion_keywords = {
+            "Sad, Depressed": ["sad, depressed"],
+            "Guilty, Ashamed": ["guilty, ashamed"],
+            "Angry, Irritated, Annoyed, Resentful": ["angry, irritated, annoyed, resentful"],
+            "Frustrated": ["frustrated"],
+            "Anxious, Worried, Terrified, Nervous, Panicked": ["anxious, worried, terrified, nervous, panicked"],
+            "Inferior, Inadequate": ["inferior, nadequate"],
+            "Lonely": ["lonely"],
+            "Hopeless, Discouraged": ["hopeless, discouraged"],
+            "Happy": ["happy"],
+            "Neutral": ["neutral"]
+        }
+
+        for emotion, keywords in emotion_keywords.items():
+            if any(keyword in text.lower() for keyword in keywords):
+                return emotion
+        return "Neutral"  # Default if no keywords match
+
+
+
     def log_mood(self, mood, cause):
-        """Log the user's mood and cause of stress into a CSV file."""
-        with open("mood_logs.csv", mode="a", newline="") as file:
-            writer = csv.writer(file)
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            writer.writerow([timestamp, mood, cause])
-        print(f"Logged Mood: {mood}, Cause: {cause}")
+        """Log the user's mood and cause of stress into a CSV file."""    
+        if mood not in EMOTIONS:
+            print(f"Invalid mood: {mood}. Not logged.")
+            return
+
+        try:
+            with open("mood_logs.csv", mode="a", newline="") as file:
+                writer = csv.writer(file)
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                writer.writerow([timestamp, mood, cause])
+            print(f"Logged Mood: {mood}, Cause: {cause}")
+        except Exception as e:
+            print(f"Error logging mood: {e}")
+
 
     def save_feedback_with_emotion(self, question, response, feedback):
         """Save user feedback and emotion to a CSV file."""
@@ -204,27 +147,53 @@ class Chatbot:
             writer.writerow([question, response, feedback, emotion])
         print("Feedback and emotion saved!")
 
-    def generate_report(self):
-        """Generate a personalized report from mood logs."""
+    def generate_pdf_report(self):
+        """Generate a PDF report summarizing stress and mood trends."""
         try:
-            # Load the mood logs
+            # Load mood data
             df = pd.read_csv("mood_logs.csv", names=["Timestamp", "Mood", "Cause"])
-            
-            # Analyze mood distribution
             mood_counts = df["Mood"].value_counts()
-            most_common_cause = df["Cause"].value_counts().idxmax()
+            most_common_cause = df["Cause"].value_counts().idxmax() if not df.empty else "No data"
 
-            # Create report summary
-            report = (
-                f"**Mood Summary**:\n"
-                f"- Happy: {mood_counts.get('Happy', 0)}\n"
-                f"- Neutral: {mood_counts.get('Neutral', 0)}\n"
-                f"- Stressed: {mood_counts.get('Stressed', 0)}\n\n"
-                f"**Top Cause of Stress**:\n- {most_common_cause}\n"
-            )
-            return report
+            # File path for the PDF
+            pdf_file = "stress_report.pdf"
+
+            # Generate the mood trends chart
+            chart_path = self.plot_mood_trend()  # This generates and saves "mood_trend.png"
+
+            # Create the PDF
+            c = canvas.Canvas(pdf_file, pagesize=letter)
+            c.setFont("Helvetica", 12)
+            
+            c.drawString(100, 750, "Personalized Stress Report")
+            c.drawString(100, 730, f"Total Mood Entries: {len(df)}")
+            y_position = 710
+
+
+            for mood, count in mood_counts.items():
+                c.drawString(100, y_position, f"- {mood}: {count}")
+                y_position -= 20
+
+            c.drawString(100, y_position, f"Top Cause of Stress: {most_common_cause}")
+            y_position -= 20
+
+
+            
+            # Add the mood trends chart to the PDF
+            if chart_path:
+                c.drawString(100, y_position, "Mood Trends Over Time:")
+                c.drawImage(chart_path, 100, y_position - 250, width=400, height=200)  # Adjust chart size and position
+                y_position -= 270  # Adjust space for the chart
+
+
+            c.drawString(100, 200, "Thank you for using the Stress Management App!")
+            c.save()
+
+            return pdf_file
+
         except Exception as e:
-            return f"Error generating report: {str(e)}"
+            print(f"Error generating PDF report: {e}")
+            return None
 
 
     def get_mood_data(self):
@@ -264,6 +233,7 @@ class Chatbot:
         return "mood_trend.png"  # Return the file path
 
 
+
     def plot_interactive_mood_trend(self):
         """Generate an interactive mood trend chart using Plotly."""
         df = self.get_mood_data()
@@ -284,6 +254,56 @@ class Chatbot:
             labels={"Count": "Mood Count", "Date": "Date"}
         )
         return fig
+
+
+    def analyze_feedback(self):
+        """Analyze feedback distribution and identify problematic responses."""
+        try:
+            # Load feedback data
+            feedback_df = pd.read_csv("feedback.csv", names=["Question", "Response", "Feedback", "Emotion"])
+
+            # Analyze feedback distribution
+            feedback_counts = feedback_df["Feedback"].value_counts()
+
+            # Plot feedback distribution
+            plt.figure(figsize=(6, 4))
+            feedback_counts.plot(kind="bar", title="Feedback Distribution", xlabel="Feedback Type", ylabel="Count")
+            plt.tight_layout()
+            dist_path = "feedback_distribution.png"
+            plt.savefig(dist_path)
+            plt.close()
+
+            # Identify problematic responses
+            negative_feedback = feedback_df[feedback_df["Feedback"] == "negative"]
+            problematic_responses = negative_feedback["Response"].value_counts().head(10)
+
+            return {
+                "distribution_chart": dist_path,
+                "problematic_responses": problematic_responses
+            }
+        except Exception as e:
+            print(f"Error analyzing feedback: {e}")
+            return None
+
+
+    def correlate_feedback_with_emotions(self):
+        """Analyze how feedback correlates with user emotions."""
+        try:
+            feedback_df = pd.read_csv("feedback.csv", names=["Question", "Response", "Feedback", "Emotion"])
+            emotion_feedback = feedback_df.groupby(["Emotion", "Feedback"]).size().unstack(fill_value=0)
+
+            # Plot correlation
+            plt.figure(figsize=(8, 6))
+            emotion_feedback.plot(kind="bar", stacked=True, title="Feedback Correlation with Emotions", ylabel="Count")
+            plt.tight_layout()
+            corr_path = "emotion_feedback_correlation.png"
+            plt.savefig(corr_path)
+            plt.close()
+
+            return corr_path
+        except Exception as e:
+            print(f"Error analyzing feedback-emotion correlation: {e}")
+            return None
 
 #Instantiate and run the chatbot
 # if __name__ == "__main__":
