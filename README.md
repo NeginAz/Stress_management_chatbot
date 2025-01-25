@@ -81,4 +81,13 @@ This repository contains a Stress Management Chatbot application designed to pro
   streamlit run streamlit.py
   ```
 
-## 
+### 7. ## Data Source
+
+The chatbot's responses are enhanced using a Retrieval-Augmented Generation (RAG) pipeline, which focuses on information from a custom `stress.txt` file. This file contains carefully curated content from the following sources:
+
+- [Source 1](https://mindbodyo.com/stress-management-techniques/) - Effective Stress Management Techniques for Better Mental Health.
+- [Source 2](https://www.mayoclinic.org/healthy-lifestyle/stress-management/in-depth/relaxation-technique/art-20045368) - Holistic Approaches to Stress Management. 
+- [Source 3](https://www.mayoclinic.org/healthy-lifestyle/stress-management/in-depth/relaxation-technique/art-20045368) - Stress management. 
+
+The content was selected to ensure the chatbot provides accurate, actionable, and empathetic advice to users.
+
