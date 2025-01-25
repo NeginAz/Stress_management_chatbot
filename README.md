@@ -16,6 +16,7 @@ This repository contains a Stress Management Chatbot application designed to pro
 
 - Tracks causes of stress for better self-awareness.
 <img width="1512" alt="Log_mood" src="https://github.com/user-attachments/assets/01331c9e-7df8-485f-a58e-192bb1482482" />
+
 ### 3. Personalized Stress Reports
 
 - Generates textual and graphical summaries of mood trends.
